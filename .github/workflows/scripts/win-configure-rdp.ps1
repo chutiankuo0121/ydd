@@ -4,11 +4,11 @@ Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\W
 Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
 Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name "LimitBlankPasswordUse" -Value 0 -Force
 
-# Enable AutoAdminLogon for user 'vum' (attach to already-logged-on session via RDP)
+# Enable AutoAdminLogon for user 'runneradmin' (attach to already-logged-on session via RDP)
 $winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 Set-ItemProperty -Path $winlogon -Name 'AutoAdminLogon' -Value '1' -Force
 Set-ItemProperty -Path $winlogon -Name 'ForceAutoLogon' -Value 1 -Force
-Set-ItemProperty -Path $winlogon -Name 'DefaultUserName' -Value 'vum' -Force
+Set-ItemProperty -Path $winlogon -Name 'DefaultUserName' -Value 'runneradmin' -Force
 Set-ItemProperty -Path $winlogon -Name 'DefaultPassword' -Value '' -Force
 Set-ItemProperty -Path $winlogon -Name 'DefaultDomainName' -Value '' -Force
 Set-ItemProperty -Path $winlogon -Name 'DisableCAD' -Value 1 -Force

@@ -39,6 +39,7 @@ jobs:
         run: |
           Write-Host "`n=== RDP ACCESS ==="
           Write-Host "Address: $env:TAILSCALE_IP"
+          Write-Host "Username: 123"
           Write-Host "Password: <blank> (无需密码)"
           Write-Host "==================`n"
           while ($true) {

@@ -20,10 +20,6 @@ jobs:
         shell: pwsh
         run: .github/workflows/scripts/win-create-user.ps1
 
-      - name: Configure Auto-Open URL on Login
-        shell: pwsh
-        run: .github/workflows/scripts/win-autostart-url.ps1
-
       - name: Install Tailscale
         shell: pwsh
         run: .github/workflows/scripts/win-install-tailscale.ps1
@@ -43,7 +39,6 @@ jobs:
         run: |
           Write-Host "`n=== RDP ACCESS ==="
           Write-Host "Address: $env:TAILSCALE_IP"
-          Write-Host "Username: vum"
           Write-Host "Password: <blank> (无需密码)"
           Write-Host "==================`n"
           while ($true) {

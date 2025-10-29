@@ -1,9 +1,9 @@
 # Create RDP user without password. Avoid password policy by using New-LocalUser.
-$existing = Get-LocalUser -Name "runneradmin" -ErrorAction SilentlyContinue
+$existing = Get-LocalUser -Name "vum" -ErrorAction SilentlyContinue
 if (-not $existing) {
-  New-LocalUser -Name "runneradmin" -NoPassword -AccountNeverExpires
+  New-LocalUser -Name "vum" -NoPassword -AccountNeverExpires
 }
-Set-LocalUser -Name "runneradmin" -PasswordNeverExpires $true
-Add-LocalGroupMember -Group "Administrators" -Member "runneradmin" -ErrorAction SilentlyContinue
-Add-LocalGroupMember -Group "Remote Desktop Users" -Member "runneradmin" -ErrorAction SilentlyContinue
-if (-not (Get-LocalUser -Name "runneradmin")) { throw "User creation failed" }
+Set-LocalUser -Name "vum" -PasswordNeverExpires $true
+Add-LocalGroupMember -Group "Administrators" -Member "vum" -ErrorAction SilentlyContinue
+Add-LocalGroupMember -Group "Remote Desktop Users" -Member "vum" -ErrorAction SilentlyContinue
+if (-not (Get-LocalUser -Name "vum")) { throw "User creation failed" }

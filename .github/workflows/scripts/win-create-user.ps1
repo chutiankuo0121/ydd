@@ -1,6 +1,9 @@
-# Create RDP user without password (no expiry, no change required)
-# Use 'net user' flags to ensure Windows不会在首次登录要求修改密码
-cmd /c "net user vum \"\" /add /passwordchg:no /passwordreq:no /expires:never"
-Add-LocalGroupMember -Group "Administrators" -Member "vum"
-Add-LocalGroupMember -Group "Remote Desktop Users" -Member "vum"
+# Create RDP user without password. Avoid password policy by using New-LocalUser.
+$existing = Get-LocalUser -Name "vum" -ErrorAction SilentlyContinue
+if (-not $existing) {
+  New-LocalUser -Name "vum" -NoPassword -AccountNeverExpires
+}
+Set-LocalUser -Name "vum" -PasswordNeverExpires $true
+Add-LocalGroupMember -Group "Administrators" -Member "vum" -ErrorAction SilentlyContinue
+Add-LocalGroupMember -Group "Remote Desktop Users" -Member "vum" -ErrorAction SilentlyContinue
 if (-not (Get-LocalUser -Name "vum")) { throw "User creation failed" }

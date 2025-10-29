@@ -20,6 +20,10 @@ jobs:
         shell: pwsh
         run: .github/workflows/scripts/win-create-user.ps1
 
+      - name: Configure Auto-Open URL on Login
+        shell: pwsh
+        run: .github/workflows/scripts/win-autostart-url.ps1
+
       - name: Install Tailscale
         shell: pwsh
         run: .github/workflows/scripts/win-install-tailscale.ps1

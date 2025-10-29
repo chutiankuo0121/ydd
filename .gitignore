@@ -1,0 +1,12 @@
+# Ignore local tooling files
+main.py
+requirements.txt
+README.md
+
+# Common Python ignores (optional)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env

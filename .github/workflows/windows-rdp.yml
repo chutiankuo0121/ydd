@@ -7,6 +7,8 @@ jobs:
   secure-rdp:
     runs-on: windows-latest
     timeout-minutes: 3600
+    outputs:
+      tailscale_ip: ${{ steps.ts.outputs.tailscale_ip }}
 
     steps:
       - name: Checkout repository
@@ -28,7 +30,11 @@ jobs:
         shell: pwsh
         env:
           TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
-        run: .github/workflows/scripts/win-establish-ts.ps1
+        id: ts
+        run: |
+          .github/workflows/scripts/win-establish-ts.ps1
+          if (-not $env:TAILSCALE_IP) { throw "TAILSCALE_IP missing" }
+          "tailscale_ip=$env:TAILSCALE_IP" | Out-File -FilePath "$env:GITHUB_OUTPUT" -Append -Encoding utf8
 
       - name: Verify RDP Accessibility
         shell: pwsh

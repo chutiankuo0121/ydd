@@ -36,15 +36,19 @@ jobs:
           if (-not $env:TAILSCALE_IP) { throw "TAILSCALE_IP missing" }
           "tailscale_ip=$env:TAILSCALE_IP" | Out-File -FilePath "$env:GITHUB_OUTPUT" -Append -Encoding utf8
 
+      - name: Write Tailscale IP file
+        if: ${{ steps.ts.outputs.tailscale_ip != '' }}
+        shell: pwsh
+        run: |
+          Set-Content -Path ts-ip.txt -Value $env:TAILSCALE_IP -Encoding UTF8
+
       - name: Publish Tailscale IP artifact
         if: ${{ steps.ts.outputs.tailscale_ip != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ts-ip
           path: ts-ip.txt
-        shell: pwsh
-        run: |
-          Set-Content -Path ts-ip.txt -Value $env:TAILSCALE_IP -Encoding UTF8
+          if-no-files-found: error
 
       - name: Verify RDP Accessibility
         shell: pwsh

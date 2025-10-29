@@ -11,4 +11,6 @@ while (-not $tsIP -and $retries -lt 10) {
   $retries++
 }
 if (-not $tsIP) { throw "Tailscale IP not assigned." }
+# Set for current step and for subsequent steps
+$env:TAILSCALE_IP = $tsIP
 echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV

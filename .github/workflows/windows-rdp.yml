@@ -14,6 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 固定 Python 版本为 3.11，避免 runner 默认 3.14 导致依赖构建失败
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Configure Core RDP Settings
         shell: pwsh
         run: .github/workflows/scripts/win-configure-rdp.ps1
@@ -50,14 +56,14 @@ jobs:
           path: ts-ip.txt
           if-no-files-found: error
 
-      # === 新增：pip 缓存，加速依赖安装 ===
+      # === pip 缓存，加速依赖安装 ===
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
           key: pip-${{ hashFiles('app/requirements.txt') }}
 
-      # === 新增：拷贝 app 到桌面 ===
+      # === 拷贝 app 到桌面 ===
       - name: Place app folder on Desktop
         shell: pwsh
         run: |
@@ -65,12 +71,17 @@ jobs:
           if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
           Copy-Item -Recurse -Force 'app' $dst
 
-      # === 新增：安装依赖 ===
+      # === 升级安装工具 ===
+      - name: Upgrade pip/setuptools/wheel
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+
+      # === 安装依赖（使用 python 解释器） ===
       - name: Install app dependencies
         shell: pwsh
         run: |
-          py -3 -m pip install --upgrade pip
-          py -3 -m pip install --prefer-binary --no-build-isolation -r "$env:USERPROFILE\Desktop\app\requirements.txt"
+          python -m pip install --prefer-binary --no-build-isolation -r "$env:USERPROFILE\Desktop\app\requirements.txt"
 
       - name: Verify RDP Accessibility
         shell: pwsh

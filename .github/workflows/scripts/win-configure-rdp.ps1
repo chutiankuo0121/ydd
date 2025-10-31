@@ -6,7 +6,13 @@ Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name "Limit
 
 # Set password for vum user
 $password = 'Abc1234567890+'
+Write-Host "Setting password for user vum..."
 net user vum $password
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Password set successfully"
+} else {
+    Write-Host "Failed to set password, exit code: $LASTEXITCODE"
+}
 
 # Enable AutoAdminLogon for user 'vum' (attach to already-logged-on session via RDP)
 $winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'

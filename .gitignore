@@ -10,3 +10,5 @@ __pycache__/
 *.pyd
 *.egg-info/
 .env
+
+# (removed) previously ignored /app; now track app and its files

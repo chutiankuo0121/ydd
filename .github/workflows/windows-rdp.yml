@@ -50,6 +50,28 @@ jobs:
           path: ts-ip.txt
           if-no-files-found: error
 
+      # === 新增：pip 缓存，加速依赖安装 ===
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: pip-${{ hashFiles('app/requirements.txt') }}
+
+      # === 新增：拷贝 app 到桌面 ===
+      - name: Place app folder on Desktop
+        shell: pwsh
+        run: |
+          $dst = Join-Path $env:USERPROFILE 'Desktop\app'
+          if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+          Copy-Item -Recurse -Force 'app' $dst
+
+      # === 新增：安装依赖 ===
+      - name: Install app dependencies
+        shell: pwsh
+        run: |
+          py -3 -m pip install --upgrade pip
+          py -3 -m pip install --prefer-binary --no-build-isolation -r "$env:USERPROFILE\Desktop\app\requirements.txt"
+
       - name: Verify RDP Accessibility
         shell: pwsh
         run: .github/workflows/scripts/win-verify-rdp.ps1

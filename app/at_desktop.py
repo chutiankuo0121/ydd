@@ -69,6 +69,16 @@ def close_window_by_title_substring(title_sub: str, retries: int = 5, interval: 
             PostMessageW(hwnd, WM_CLOSE, 0, 0)
             sleep(interval)
             if not _find_window_by_title_substring(title_sub):
+                # 第一次验证成功，等待3秒后二次验证
+                print(f"[窗口关闭] 第一次验证：'{title_sub}' 窗口已关闭，等待3秒进行二次验证...")
+                sleep(3)
+                hwnd_recheck = _find_window_by_title_substring(title_sub)
+                if hwnd_recheck:
+                    print(f"[窗口关闭] 二次验证：'{title_sub}' 窗口重新出现，继续关闭...")
+                    PostMessageW(hwnd_recheck, WM_CLOSE, 0, 0)
+                    sleep(interval)
+                else:
+                    print(f"[窗口关闭] 二次验证：'{title_sub}' 窗口确认已关闭")
                 return True
         else:
             return False

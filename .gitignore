@@ -1,7 +1,3 @@
-# Ignore local tooling files
-main.py
-requirements.txt
-README.md
 
 # Common Python ignores (optional)
 __pycache__/

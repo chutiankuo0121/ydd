@@ -1,0 +1,5 @@
+DrissionPage>=4.1.1
+Airtest>=1.2.10
+requests>=2.31.0
+pillow>=9.5.0
+opencv-python>=4.8.0.74

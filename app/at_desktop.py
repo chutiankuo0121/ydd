@@ -145,12 +145,74 @@ def comet_first_run_login(original_email: str, image_path_prefix=None):
     # 先关闭可能遮挡的 Settings 窗口
     close_window_by_title_substring("Settings", retries=5, interval=0.3)
     sleep(4)
+    
+    # 并发轮询检测 Cloudflare 认证与邮箱输入框
     email_box = os.path.join(image_path_prefix, "enter_your_email.png")
+    cloudflare_box = os.path.join(image_path_prefix, "cloudflare.png")
+    email_tpl = Template(email_box, threshold=0.8)
+    cloudflare_tpl = Template(cloudflare_box, threshold=0.8)
+    
+    print("[Cloudflare检测] 并发轮询：enter_your_email.png 与 cloudflare.png")
+    max_wait = 20
+    for sec in range(max_wait):
+        # 先检测邮箱输入框
+        pos_email = exists(email_tpl)
+        if pos_email:
+            print(f"[Cloudflare检测] 命中 enter_your_email.png @ {pos_email}（{sec+1}s），无需认证")
+            break
+        
+        # 再检测 Cloudflare 认证框
+        pos_cloudflare = exists(cloudflare_tpl)
+        if pos_cloudflare:
+            print(f"[Cloudflare检测] 命中 cloudflare.png @ {pos_cloudflare}（{sec+1}s），点击进行认证")
+            try:
+                touch(pos_cloudflare)
+            except Exception:
+                touch(cloudflare_tpl)
+            sleep(2)
+            print("[Cloudflare检测] 已点击，继续轮询 enter_your_email.png")
+            # 点击后继续轮询，不 break
+        
+        sleep(1)
+    
+    # 继续等待并点击邮箱输入框
     wait_and_click(email_box, max_wait=20)
     sleep(0.2)
     type_slow(original_email, per_char_delay=0.01)
     sleep(0.3)
+    
+    # 容错：检测 continue_with_email.png，如果 5 秒未出现则回头检查邮箱输入
     cont_btn = os.path.join(image_path_prefix, "continue_with_email.png")
+    cont_tpl = Template(cont_btn, threshold=0.8)
+    
+    print("[邮箱输入容错] 检测 continue_with_email.png（5秒）")
+    cont_found = False
+    for sec in range(5):
+        pos_cont = exists(cont_tpl)
+        if pos_cont:
+            print(f"[邮箱输入容错] 发现 continue_with_email.png @ {pos_cont}（{sec+1}s）")
+            cont_found = True
+            break
+        sleep(1)
+    
+    # 如果 5 秒内未发现按钮，检查是否需要重新输入邮箱
+    if not cont_found:
+        print("[邮箱输入容错] 未发现 continue_with_email.png，检查 enter_your_email.png")
+        pos_email_retry = exists(email_tpl)
+        if pos_email_retry:
+            print(f"[邮箱输入容错] 发现 enter_your_email.png @ {pos_email_retry}，重新输入邮箱")
+            try:
+                touch(pos_email_retry)
+            except Exception:
+                touch(email_tpl)
+            sleep(0.2)
+            type_slow(original_email, per_char_delay=0.01)
+            sleep(0.3)
+            print("[邮箱输入容错] 已重新输入，继续检测 continue_with_email.png")
+        else:
+            print("[邮箱输入容错] 未发现 enter_your_email.png")
+    
+    # 最终等待并点击 continue_with_email.png
     wait_and_click(cont_btn, max_wait=20)
 
 

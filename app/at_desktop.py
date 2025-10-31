@@ -7,6 +7,10 @@ from config import CODE_API_TEMPLATE
 import random
 import logging
 
+# ============ 获取脚本所在目录的绝对路径 ============
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_IMAGE_DIR = os.path.join(SCRIPT_DIR, "images")
+
 # ============ 降低 Airtest 日志噪音 ============
 for _name in [
     "airtest",
@@ -93,7 +97,9 @@ def launch_installer(installer_path):
     sleep(2)
 
 
-def auto_install_process(image_path_prefix="images/"):
+def auto_install_process(image_path_prefix=None):
+    if image_path_prefix is None:
+        image_path_prefix = DEFAULT_IMAGE_DIR
     sequence = [
         ("start_install.png", 30, "启动安装"),
         ("launch_comet.png", 60, "等待下载&启动Comet"),
@@ -133,7 +139,9 @@ def type_slow(s: str, per_char_delay: float = 0.01):
         sleep(per_char_delay)
 
 
-def comet_first_run_login(original_email: str, image_path_prefix="images/"):
+def comet_first_run_login(original_email: str, image_path_prefix=None):
+    if image_path_prefix is None:
+        image_path_prefix = DEFAULT_IMAGE_DIR
     # 先关闭可能遮挡的 Settings 窗口
     close_window_by_title_substring("Settings", retries=5, interval=0.3)
     sleep(4)
@@ -169,7 +177,9 @@ def poll_code(email_addr: str, max_tries: int = 10, interval: int = 3, previous_
     raise RuntimeError('验证码轮询超时')
 
 
-def comet_enter_code(original_email: str, image_path_prefix="images/", next_img: str = None, previous_code: str = None):
+def comet_enter_code(original_email: str, image_path_prefix=None, next_img: str = None, previous_code: str = None):
+    if image_path_prefix is None:
+        image_path_prefix = DEFAULT_IMAGE_DIR
     code_box = os.path.join(image_path_prefix, "enter_code.png")
     wait_and_click(code_box, max_wait=20)
     sleep(5)
@@ -199,7 +209,9 @@ def try_click(img_path, timeout=10):
     return False
 
 
-def comet_post_login_dismiss_tour(image_path_prefix="images/") -> bool:
+def comet_post_login_dismiss_tour(image_path_prefix=None) -> bool:
+    if image_path_prefix is None:
+        image_path_prefix = DEFAULT_IMAGE_DIR
     """
     返回值：
     - True  -> 路径A：点击 x 后继续问问题
@@ -246,7 +258,9 @@ def comet_post_login_dismiss_tour(image_path_prefix="images/") -> bool:
     return True
 
 
-def comet_ask_anything(image_path_prefix="images/"):
+def comet_ask_anything(image_path_prefix=None):
+    if image_path_prefix is None:
+        image_path_prefix = DEFAULT_IMAGE_DIR
     questions = [
         "If you could have dinner with any fictional character, who would it be and what would you ask them?",
         "If you could instantly master any language (other than English), which one would you choose and why?",
@@ -270,9 +284,3 @@ def main(installer_path, original_email, previous_code):
     if need_ask:
         comet_ask_anything()
     print("[完成] 全流程完成。")
-
-if __name__ == "__main__":
-    example_path = r"C:\Users\asus\Downloads\comet_installer_latest.exe"
-    example_email = "example@123719141.xyz"
-    example_prev_code = "000000"
-    main(example_path, example_email, example_prev_code)

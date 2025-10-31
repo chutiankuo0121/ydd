@@ -146,7 +146,7 @@ def comet_first_run_login(original_email: str, image_path_prefix="images/"):
     wait_and_click(cont_btn, max_wait=20)
 
 
-def poll_code(email_addr: str, max_tries: int = 10, interval: int = 3) -> str:
+def poll_code(email_addr: str, max_tries: int = 10, interval: int = 3, previous_code: str = None) -> str:
     url = CODE_API_TEMPLATE.format(email=email_addr)
     for _ in range(max_tries):
         try:
@@ -158,18 +158,22 @@ def poll_code(email_addr: str, max_tries: int = 10, interval: int = 3) -> str:
             except Exception:
                 code = txt
             if code and 3 <= len(code) <= 8:
-                return code
+                # 若与上一次验证码相同，则继续轮询，避免输入旧验证码
+                if previous_code and code == previous_code:
+                    pass
+                else:
+                    return code
         except Exception:
             pass
         sleep(interval)
     raise RuntimeError('验证码轮询超时')
 
 
-def comet_enter_code(original_email: str, image_path_prefix="images/", next_img: str = None):
+def comet_enter_code(original_email: str, image_path_prefix="images/", next_img: str = None, previous_code: str = None):
     code_box = os.path.join(image_path_prefix, "enter_code.png")
     wait_and_click(code_box, max_wait=20)
     sleep(5)
-    code = poll_code(original_email)
+    code = poll_code(original_email, previous_code=previous_code)
     text(code)
     if next_img:
         wait_and_click(os.path.join(image_path_prefix, next_img), max_wait=20)
@@ -256,12 +260,12 @@ def comet_ask_anything(image_path_prefix="images/"):
     wait_and_click(next_btn, max_wait=20)
 
 
-def main(installer_path, original_email):
+def main(installer_path, original_email, previous_code):
     init_windows_device()
     launch_installer(installer_path)
     auto_install_process()
     comet_first_run_login(original_email)
-    comet_enter_code(original_email)
+    comet_enter_code(original_email, previous_code=previous_code)
     need_ask = comet_post_login_dismiss_tour()
     if need_ask:
         comet_ask_anything()
@@ -270,4 +274,5 @@ def main(installer_path, original_email):
 if __name__ == "__main__":
     example_path = r"C:\Users\asus\Downloads\comet_installer_latest.exe"
     example_email = "example@123719141.xyz"
-    main(example_path, example_email)
+    example_prev_code = "000000"
+    main(example_path, example_email, example_prev_code)

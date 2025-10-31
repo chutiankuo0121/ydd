@@ -127,7 +127,8 @@ def run_with_drissionpage():
                 print(f'[收尾] 已清理本次 user-data-dir: {user_data_dir}')
 
         print(f'自动化执行成功，安装包位于: {installer_path}')
-        return installer_path, email_addr
+        # 返回首次验证码以供桌面端轮询时避开旧验证码
+        return installer_path, email_addr, code
 
     except Exception as e:
         print(f"DrissionPage 启动或操作失败: {e}")

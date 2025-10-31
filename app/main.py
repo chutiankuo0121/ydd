@@ -15,7 +15,7 @@ def send_webhook(status, message="", error=""):
         return
     
     # 从环境变量获取 IP（主控电脑会设置）
-    ip = os.environ.get('YDN_CLOUD_IP', '')
+    ip = os.environ.get('YDN_CLOUD_IP', '').strip()
     if not ip:
         print("[调试] 未发现环境变量 YDN_CLOUD_IP，跳过发送")
         return

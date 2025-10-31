@@ -8,6 +8,7 @@ import random
 import string
 import shutil
 from config import URL, CODE_API_TEMPLATE, DOWNLOAD_PATH
+from airtest.core.api import exists, touch, sleep, Template
 from utils.email_utils import generate_random_email
 
 
@@ -44,6 +45,10 @@ def wait_for_installer(download_dir, filename="comet_installer_latest.exe", inte
     raise RuntimeError(f'轮询{max_tries}次，未检测到安装包 {filename}，任务失败！')
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGE_DIR = os.path.join(SCRIPT_DIR, 'images')
+
+
 def run_with_drissionpage():
     page = None
     user_data_dir = None
@@ -60,9 +65,29 @@ def run_with_drissionpage():
 
         # 1. 点击邀请按钮（英文）
         xpath_invite = 'xpath://div[contains(text(),"Claim invitation")]'
-        btn = page.ele(xpath_invite, timeout=20)
+        btn = page.ele(xpath_invite, timeout=12)
         if not btn:
-            raise RuntimeError('Invite button not found (Claim invitation)')
+            # 先尝试处理 Cloudflare 人机（通过图片点击）
+            cf_img = os.path.join(IMAGE_DIR, 'cloudflare.png')
+            print('[Cloudflare] Invite 未找到，尝试检测 cloudflare.png 并点击')
+            try:
+                cf_tpl = Template(cf_img, threshold=0.8)
+                pos = exists(cf_tpl)
+                if pos:
+                    print(f"[Cloudflare] 命中 cloudflare.png @ {pos}，执行点击")
+                    try:
+                        touch(pos)
+                    except Exception:
+                        touch(cf_tpl)
+                    sleep(2)
+                else:
+                    print('[Cloudflare] 未检测到 cloudflare.png')
+            except Exception as _e:
+                print(f"[Cloudflare] 检测 cloudflare.png 异常: {_e}")
+            # 再次尝试查找 Invite 按钮
+            btn = page.ele(xpath_invite, timeout=12)
+            if not btn:
+                raise RuntimeError('Invite button not found (Claim invitation)')
         try:
             btn.scroll_to_see()
         except Exception:
@@ -140,7 +165,8 @@ def run_with_drissionpage():
         if user_data_dir and os.path.exists(user_data_dir):
             shutil.rmtree(user_data_dir, ignore_errors=True)
             print(f'[收尾-异常] 已清理本次 user-data-dir: {user_data_dir}')
-        sys.exit(1)
+        # 重要：抛出异常给上层 main.py 捕获，从而发送 failed 到 Worker
+        raise RuntimeError(str(e))
 
 
 if __name__ == "__main__":

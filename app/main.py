@@ -12,7 +12,6 @@ def main():
     try:
         logger.running("开始执行自动化流程")
         installer_path, email_addr, first_code = run_with_drissionpage()
-        logger.running("网页自动化完成，开始桌面安装流程")
         desktop_main(installer_path, email_addr, first_code)
         logger.success("全流程执行成功")
     except Exception as e:

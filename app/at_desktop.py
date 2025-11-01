@@ -121,7 +121,7 @@ def auto_install_process(image_path_prefix=None):
         ("continue.png", 30, "Continue"),
         ("start_comet.png", 30, "Start Comet")
     ]
-    for idx, (img, maxsec, _) in enumerate(sequence):
+    for idx, (img, maxsec, step_name) in enumerate(sequence):
         img_path = os.path.join(image_path_prefix, img)
         wait_and_click(img_path, max_wait=maxsec)
         # 容错：若5秒内未看到“下一步元素”，则尝试再次点击当前元素（若仍存在）
@@ -144,6 +144,7 @@ def auto_install_process(image_path_prefix=None):
         if img == "start_comet.png":
             # 仅关闭可能遮挡的 Windows Settings
             close_window_by_title_substring("Settings", retries=5, interval=0.3)
+            logger.running("安装流程完成，Comet 已启动")
 
 
 def type_slow(s: str, per_char_delay: float = 0.01):
@@ -155,6 +156,7 @@ def type_slow(s: str, per_char_delay: float = 0.01):
 def comet_first_run_login(original_email: str, image_path_prefix=None):
     if image_path_prefix is None:
         image_path_prefix = DEFAULT_IMAGE_DIR
+    logger.running("开始首次登录流程")
     # 先关闭可能遮挡的 Settings 窗口
     close_window_by_title_substring("Settings", retries=5, interval=0.3)
     sleep(4)
@@ -260,6 +262,7 @@ def comet_enter_code(original_email: str, image_path_prefix=None, next_img: str 
     sleep(5)
     code = poll_code(original_email, previous_code=previous_code)
     text(code)
+    logger.running("验证码输入完成")
     if next_img:
         wait_and_click(os.path.join(image_path_prefix, next_img), max_wait=20)
 
@@ -351,10 +354,13 @@ def comet_ask_anything(image_path_prefix=None):
 def main(installer_path, original_email, previous_code):
     init_windows_device()
     launch_installer(installer_path)
+    logger.running("安装程序已启动")
     auto_install_process()
+    logger.running("安装流程完成，准备首次登录")
     comet_first_run_login(original_email)
     comet_enter_code(original_email, previous_code=previous_code)
     need_ask = comet_post_login_dismiss_tour()
     if need_ask:
+        logger.running("回答问题流程")
         comet_ask_anything()
     logger.info("桌面自动化全流程完成")

@@ -1,8 +1,9 @@
 # 配置信息（全局常量）
 import os
 
-# URL 和 浏览器路径优先从环境变量读取
-URL = os.environ.get('AUTO_URL', "https://pplx.ai/chutiankuo64723")
+# 邀请链接从环境变量读取（主控机会注入 YDN_INVITE_URL）
+# 优先使用 YDN_INVITE_URL，如果不存在则使用 AUTO_URL（向后兼容），最后使用默认值
+URL = os.environ.get('YDN_INVITE_URL') or os.environ.get('AUTO_URL') or "https://pplx.ai/guizhong1050452"
 
 # Windows 系统下默认下载目录：C:\Users\用户名\Downloads
 if os.name == 'nt':

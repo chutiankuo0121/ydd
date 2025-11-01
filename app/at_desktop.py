@@ -6,6 +6,9 @@ import requests
 from config import CODE_API_TEMPLATE
 import random
 import logging
+from logger import get_logger
+
+logger = get_logger("DESKTOP")
 
 # ============ 获取脚本所在目录的绝对路径 ============
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +29,7 @@ for _name in [
 def init_windows_device():
     try:
         connect_device("Windows:///")
-        print("[Airtest] Windows 设备已连接")
+        logger.info("Windows 设备已连接")
     except Exception as e:
         raise RuntimeError(f"连接 Windows 设备失败: {e}")
 
@@ -70,15 +73,15 @@ def close_window_by_title_substring(title_sub: str, retries: int = 5, interval: 
             sleep(interval)
             if not _find_window_by_title_substring(title_sub):
                 # 第一次验证成功，等待3秒后二次验证
-                print(f"[窗口关闭] 第一次验证：'{title_sub}' 窗口已关闭，等待3秒进行二次验证...")
+                logger.info(f"第一次验证：'{title_sub}' 窗口已关闭，等待3秒进行二次验证")
                 sleep(3)
                 hwnd_recheck = _find_window_by_title_substring(title_sub)
                 if hwnd_recheck:
-                    print(f"[窗口关闭] 二次验证：'{title_sub}' 窗口重新出现，继续关闭...")
+                    logger.info(f"二次验证：'{title_sub}' 窗口重新出现，继续关闭")
                     PostMessageW(hwnd_recheck, WM_CLOSE, 0, 0)
                     sleep(interval)
                 else:
-                    print(f"[窗口关闭] 二次验证：'{title_sub}' 窗口确认已关闭")
+                    logger.info(f"二次验证：'{title_sub}' 窗口确认已关闭")
                 return True
         else:
             return False
@@ -102,7 +105,7 @@ def wait_and_click(img_path, max_wait=20, step_name=None):
 
 
 def launch_installer(installer_path):
-    print(f"[安装] 启动: {installer_path}")
+    logger.info(f"启动安装程序: {installer_path}")
     os.startfile(installer_path)
     sleep(2)
 
@@ -162,25 +165,25 @@ def comet_first_run_login(original_email: str, image_path_prefix=None):
     email_tpl = Template(email_box, threshold=0.8)
     cloudflare_tpl = Template(cloudflare_box, threshold=0.8)
     
-    print("[Cloudflare检测] 并发轮询：enter_your_email.png 与 cloudflare.png")
+    logger.info("并发轮询检测：邮箱输入框与 Cloudflare 验证")
     max_wait = 20
     for sec in range(max_wait):
         # 先检测邮箱输入框
         pos_email = exists(email_tpl)
         if pos_email:
-            print(f"[Cloudflare检测] 命中 enter_your_email.png @ {pos_email}（{sec+1}s），无需认证")
+            logger.info(f"检测到邮箱输入框（{sec+1}s），无需认证")
             break
         
         # 再检测 Cloudflare 认证框
         pos_cloudflare = exists(cloudflare_tpl)
         if pos_cloudflare:
-            print(f"[Cloudflare检测] 命中 cloudflare.png @ {pos_cloudflare}（{sec+1}s），点击进行认证")
+            logger.info(f"检测到 Cloudflare 验证（{sec+1}s），执行认证")
             try:
                 touch(pos_cloudflare)
             except Exception:
                 touch(cloudflare_tpl)
             sleep(2)
-            print("[Cloudflare检测] 已点击，继续轮询 enter_your_email.png")
+            logger.info("已点击 Cloudflare 验证，继续轮询邮箱输入框")
             # 点击后继续轮询，不 break
         
         sleep(1)
@@ -195,22 +198,22 @@ def comet_first_run_login(original_email: str, image_path_prefix=None):
     cont_btn = os.path.join(image_path_prefix, "continue_with_email.png")
     cont_tpl = Template(cont_btn, threshold=0.8)
     
-    print("[邮箱输入容错] 检测 continue_with_email.png（5秒）")
+    logger.info("检测继续按钮（5秒）")
     cont_found = False
     for sec in range(5):
         pos_cont = exists(cont_tpl)
         if pos_cont:
-            print(f"[邮箱输入容错] 发现 continue_with_email.png @ {pos_cont}（{sec+1}s）")
+            logger.info(f"发现继续按钮（{sec+1}s）")
             cont_found = True
             break
         sleep(1)
     
     # 如果 5 秒内未发现按钮，检查是否需要重新输入邮箱
     if not cont_found:
-        print("[邮箱输入容错] 未发现 continue_with_email.png，检查 enter_your_email.png")
+        logger.warning("未发现继续按钮，检查是否需要重新输入邮箱")
         pos_email_retry = exists(email_tpl)
         if pos_email_retry:
-            print(f"[邮箱输入容错] 发现 enter_your_email.png @ {pos_email_retry}，重新输入邮箱")
+            logger.info("发现邮箱输入框，重新输入邮箱")
             try:
                 touch(pos_email_retry)
             except Exception:
@@ -218,9 +221,9 @@ def comet_first_run_login(original_email: str, image_path_prefix=None):
             sleep(0.2)
             type_slow(original_email, per_char_delay=0.01)
             sleep(0.3)
-            print("[邮箱输入容错] 已重新输入，继续检测 continue_with_email.png")
+            logger.info("已重新输入邮箱，继续检测继续按钮")
         else:
-            print("[邮箱输入容错] 未发现 enter_your_email.png")
+            logger.warning("未发现邮箱输入框")
     
     # 最终等待并点击 continue_with_email.png
     wait_and_click(cont_btn, max_wait=20)
@@ -268,16 +271,16 @@ def try_click(img_path, timeout=10):
     for sec in range(timeout):
         pos = exists(tpl)
         if pos:
-            print(f"[分歧-探测] 命中 {name} @ {pos}（{sec+1}s）")
+            logger.info(f"检测到 {name}（{sec+1}s）")
             try:
                 touch(pos)
             except Exception:
                 touch(tpl)
             sleep(0.5)
-            print(f"[分歧-点击] 已点击 {name}")
+            logger.info(f"已点击 {name}")
             return True
         sleep(1)
-    print(f"[分歧-探测] 未发现 {name}（{timeout}s）")
+    logger.info(f"未发现 {name}（{timeout}s）")
     return False
 
 
@@ -295,20 +298,19 @@ def comet_post_login_dismiss_tour(image_path_prefix=None) -> bool:
     ask2 = os.path.join(image_path_prefix, "ask_anything2.png")
     close_x = os.path.join(image_path_prefix, "x.png")
 
-    print("[分歧] 预处理：skip / skip_anyway")
+    logger.info("预处理：检测 skip / skip_anyway 按钮")
     hit_skip = try_click(skip, timeout=10)
     hit_skip_anyway = try_click(skip_anyway, timeout=10)
-    print(f"[分歧] skip={hit_skip}, skip_anyway={hit_skip_anyway}")
 
     # 同时检测 ask_anything2 与 x，先命中的优先
-    print("[分歧] 并发轮询：ask_anything2 与 x")
+    logger.info("并发轮询：ask_anything2 与 x")
     ask2_tpl = Template(ask2, threshold=0.8)
     x_tpl = Template(close_x, threshold=0.8)
     max_wait = 20
     for sec in range(max_wait):
         pos_ask2 = exists(ask2_tpl)
         if pos_ask2:
-            print(f"[分歧] 命中 ask_anything2 @ {pos_ask2}（{sec+1}s），执行路径B")
+            logger.info(f"检测到 ask_anything2（{sec+1}s），执行路径B（直接结束）")
             try:
                 touch(pos_ask2)
             except Exception:
@@ -317,7 +319,7 @@ def comet_post_login_dismiss_tour(image_path_prefix=None) -> bool:
             return False
         pos_x = exists(x_tpl)
         if pos_x:
-            print(f"[分歧] 命中 x @ {pos_x}（{sec+1}s），执行路径A")
+            logger.info(f"检测到 x 按钮（{sec+1}s），执行路径A（继续问问题）")
             try:
                 touch(pos_x)
             except Exception:
@@ -326,7 +328,7 @@ def comet_post_login_dismiss_tour(image_path_prefix=None) -> bool:
             return True
         sleep(1)
 
-    print("[分歧] 超时未命中 ask_anything2 / x，默认进入路径A（继续问问题）")
+    logger.warning("超时未检测到 ask_anything2 / x，默认进入路径A（继续问问题）")
     return True
 
 
@@ -355,4 +357,4 @@ def main(installer_path, original_email, previous_code):
     need_ask = comet_post_login_dismiss_tour()
     if need_ask:
         comet_ask_anything()
-    print("[完成] 全流程完成。")
+    logger.info("桌面自动化全流程完成")

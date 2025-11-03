@@ -89,8 +89,8 @@ def close_window_by_title_substring(title_sub: str, retries: int = 5, interval: 
 
 # ============ 工具与步骤 ============
 
-def wait_and_click(img_path, max_wait=20, step_name=None):
-    tpl = Template(img_path, threshold=0.8)
+def wait_and_click(img_path, max_wait=20, threshold=0.8):
+    tpl = Template(img_path, threshold=threshold)
     for _ in range(max_wait):
         pos = exists(tpl)
         if pos:
@@ -123,12 +123,17 @@ def auto_install_process(image_path_prefix=None):
     ]
     for idx, (img, maxsec, step_name) in enumerate(sequence):
         img_path = os.path.join(image_path_prefix, img)
-        wait_and_click(img_path, max_wait=maxsec)
-        # 容错：若5秒内未看到“下一步元素”，则尝试再次点击当前元素（若仍存在）
+        # 降低 do_this_later.png 的置信度
+        threshold = 0.7 if img == "do_this_later.png" else 0.8
+        wait_and_click(img_path, max_wait=maxsec, threshold=threshold)
+        # 容错：若5秒内未看到"下一步元素"，则尝试再次点击当前元素（若仍存在）
         if idx < len(sequence) - 1:
             next_img = os.path.join(image_path_prefix, sequence[idx + 1][0])
-            current_tpl = Template(img_path, threshold=0.8)
-            next_tpl = Template(next_img, threshold=0.8)
+            # 降低 do_this_later.png 的置信度
+            current_threshold = 0.7 if img == "do_this_later.png" else 0.8
+            next_threshold = 0.7 if sequence[idx + 1][0] == "do_this_later.png" else 0.8
+            current_tpl = Template(img_path, threshold=current_threshold)
+            next_tpl = Template(next_img, threshold=next_threshold)
             waited = 0
             while waited < 5:
                 if exists(next_tpl):
@@ -348,7 +353,7 @@ def comet_ask_anything(image_path_prefix=None):
     text(random.choice(questions))
     sleep(0.5)
     next_btn = os.path.join(image_path_prefix, "next.png")
-    wait_and_click(next_btn, max_wait=20)
+    wait_and_click(next_btn, max_wait=20, threshold=0.7)
 
 
 def main(installer_path, original_email, previous_code):

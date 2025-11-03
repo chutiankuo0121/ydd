@@ -119,6 +119,7 @@ def auto_install_process(image_path_prefix=None):
         ("get_started.png", 30, "Get Started"),
         ("do_this_later.png", 30, "稍后再做"),
         ("continue.png", 30, "Continue"),
+        ("skip_default.png", 30, "Skip"),
         ("start_comet.png", 30, "Start Comet")
     ]
     for idx, (img, maxsec, step_name) in enumerate(sequence):
@@ -147,8 +148,6 @@ def auto_install_process(image_path_prefix=None):
                 sleep(1)
                 waited += 1
         if img == "start_comet.png":
-            # 仅关闭可能遮挡的 Windows Settings
-            close_window_by_title_substring("Settings", retries=5, interval=0.3)
             logger.running("安装流程完成，Comet 已启动")
 
 
@@ -162,8 +161,6 @@ def comet_first_run_login(original_email: str, image_path_prefix=None):
     if image_path_prefix is None:
         image_path_prefix = DEFAULT_IMAGE_DIR
     logger.running("开始首次登录流程")
-    # 先关闭可能遮挡的 Settings 窗口
-    close_window_by_title_substring("Settings", retries=5, interval=0.3)
     sleep(4)
     
     # 并发轮询检测 Cloudflare 认证与邮箱输入框

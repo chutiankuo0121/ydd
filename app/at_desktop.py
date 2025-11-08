@@ -358,11 +358,20 @@ def main(installer_path, original_email, previous_code):
     launch_installer(installer_path)
     logger.running("安装程序已启动")
     auto_install_process()
-    logger.running("安装流程完成，准备首次登录")
-    comet_first_run_login(original_email)
-    comet_enter_code(original_email, previous_code=previous_code)
-    need_ask = comet_post_login_dismiss_tour()
-    if need_ask:
-        logger.running("回答问题流程")
-        comet_ask_anything()
+    
+    # 【已修改】官方策略已改：如果 original_email 为 None，说明网页端无需邮箱登录
+    # 应用内可能也不需要登录，或使用其他方式登录，这里跳过邮箱登录流程
+    if original_email is None:
+        logger.info("检测到 original_email 为 None，跳过邮箱登录流程（官方策略已变更）")
+        # 如果需要处理其他登录方式或跳过登录后的步骤，可以在这里添加
+        # 目前直接结束，或者可以继续执行后续步骤（如果有的话）
+    else:
+        logger.running("安装流程完成，准备首次登录")
+        comet_first_run_login(original_email)
+        comet_enter_code(original_email, previous_code=previous_code)
+        need_ask = comet_post_login_dismiss_tour()
+        if need_ask:
+            logger.running("回答问题流程")
+            comet_ask_anything()
+    
     logger.info("桌面自动化全流程完成")

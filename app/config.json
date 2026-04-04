@@ -1,0 +1,37 @@
+{
+    "choose_browser": "patchright",
+    "proxy": "socks5://127.0.0.1:10808",
+    "bot_protection_wait": 11,
+    "max_captcha_retries": 2,
+    "concurrent_flows": 5,
+    "max_tasks": 0,
+    "email_domain": "hotmail.com",
+    "airport": {
+        "subscription_url": "https://VBO1gePtey83TY0D.yuji.homes?clash=1",
+        "xray_path": "xray.exe",
+        "base_port": 10800,
+        "port_search_limit": 200,
+        "connectivity_test_url": "https://ipinfo.io/json",
+        "connectivity_timeout": 12,
+        "startup_wait_seconds": 1.5,
+        "max_acquire_attempts": 12,
+        "node_failure_cooldown_seconds": 180,
+        "duplicate_ip_cooldown_seconds": 60
+    },
+    "oauth2": {
+        "client_id": "c5e63ca4-b1ce-4640-ba79-7dee38d07db4",
+        "redirect_url": "http://localhost:8001",
+        "redirect_port_start": 8001,
+        "redirect_port_end": 8010,
+        "Scopes": [
+            "offline_access",
+            "https://graph.microsoft.com/Mail.ReadWrite",
+            "https://graph.microsoft.com/Mail.Send",
+            "https://graph.microsoft.com/User.Read"
+        ]
+    },
+    "playwright": {
+        "browser_path": ""
+    },
+    "info": "email_domain 可选 outlook.com 或 hotmail.com。concurrent_flows 是并发 worker 数，max_tasks 是总任务数，设为 0 表示无限循环。OAuth 回调端口固定映射为 worker1=8001 到 worker10=8010，concurrent_flows 超过 10 会直接报错。机场节点只使用新加坡/日本/台湾香港，选择权重为 50/30/20，其他地区不会参与。playwright 可用性通常弱于 patchright，如指纹环境不过关请优先使用 patchright。"
+}

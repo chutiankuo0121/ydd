@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local env files
+.env
+.env.*
+.venv/
+venv/
+
+# Editor settings
+.vscode/
+.idea/
+
+# Local runtime artifacts
+app/*.log
+app/logs/
+app/tmp/
+app/temp/
+app/.cache/
+app/ms-playwright/
+app/playwright-report/
+app/test-results/
+
+# Xray files downloaded or generated locally
+app/xray.exe
+app/geoip.dat
+app/geosite.dat
+app/Xray-windows-64.zip
+app/xray_temp.zip
+app/xray_temp/
+
+# Local config overrides
+app/config.local.json
+app/config.*.local.json
+app/config.private.json

@@ -1,0 +1,112 @@
+name: Windsurf 绑卡 - Windows RDP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bindcard-rdp:
+    runs-on: windows-latest
+    timeout-minutes: 3600
+    outputs:
+      tailscale_ip: ${{ steps.ts.outputs.tailscale_ip }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Core RDP Settings
+        shell: pwsh
+        run: .github/workflows/scripts/win-configure-rdp.ps1
+
+      - name: Create RDP User with Secure Password
+        shell: pwsh
+        run: .github/workflows/scripts/win-create-user.ps1
+
+      - name: Install Tailscale
+        shell: pwsh
+        run: .github/workflows/scripts/win-install-tailscale.ps1
+
+      - name: Establish Tailscale Connection
+        shell: pwsh
+        env:
+          TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
+        id: ts
+        run: |
+          .github/workflows/scripts/win-establish-ts.ps1
+          if (-not $env:TAILSCALE_IP) { throw "TAILSCALE_IP missing" }
+          "tailscale_ip=$env:TAILSCALE_IP" | Out-File -FilePath "$env:GITHUB_OUTPUT" -Append -Encoding utf8
+
+      - name: Write Tailscale IP file
+        if: ${{ steps.ts.outputs.tailscale_ip != '' }}
+        shell: pwsh
+        run: |
+          Set-Content -Path ts-ip.txt -Value $env:TAILSCALE_IP -Encoding UTF8
+
+      - name: Publish Tailscale IP artifact
+        if: ${{ steps.ts.outputs.tailscale_ip != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ts-ip
+          path: ts-ip.txt
+          if-no-files-found: error
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: pip-bindcard-${{ hashFiles('app/requirements.txt') }}
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install app dependencies and setup for all users
+        shell: pwsh
+        run: |
+          $req = Join-Path $env:GITHUB_WORKSPACE 'app\requirements.txt'
+          Write-Host "Using requirements: $req"
+          
+          # 获取 Python 路径
+          $pythonDir = Split-Path (Get-Command python).Source
+          Write-Host "Python directory: $pythonDir"
+          
+          # 添加到系统 PATH（所有用户可用）
+          $currentPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          if ($currentPath -notlike "*$pythonDir*") {
+            [Environment]::SetEnvironmentVariable("Path", "$pythonDir;$pythonDir\Scripts;$currentPath", "Machine")
+            Write-Host "Added Python to system PATH"
+          }
+          
+          # 安装包
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --prefer-binary -r $req
+          
+          # 显示安装的包
+          Write-Host "`nInstalled packages:"
+          python -m pip list
+
+      - name: Verify RDP Accessibility
+        shell: pwsh
+        run: .github/workflows/scripts/win-verify-rdp.ps1
+
+      - name: Maintain Connection
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 设置环境变量供 main.py 使用
+          [Environment]::SetEnvironmentVariable("GITHUB_TOKEN", $env:GITHUB_TOKEN, "User")
+          
+          Write-Host "`n=== RDP ACCESS ==="
+          Write-Host "Address: $env:TAILSCALE_IP"
+          Write-Host "Username: vum"
+          Write-Host "Password: Abc1234567890+"
+          Write-Host "==================`n"
+          Write-Host "Workspace: $env:GITHUB_WORKSPACE\app"
+          Write-Host "Run: cd app && python main.py"
+          Write-Host "==================`n"
+          while ($true) {
+            Write-Host "[$(Get-Date)] RDP Active"
+            Start-Sleep -Seconds 300
+          }

@@ -1,0 +1,5 @@
+Faker==37.11.0
+requests==2.31.0
+PySocks==1.7.1
+playwright==1.53.0
+patchright==1.52.5

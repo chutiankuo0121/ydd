@@ -8,10 +8,14 @@ from runtime_log import configure_stdout, log
 
 
 def parse_args() -> argparse.Namespace:
+    # 获取脚本所在目录，用于默认路径
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    default_config = os.path.join(script_dir, "config.json")
+    
     parser = argparse.ArgumentParser(description="Run the Outlook registration app.")
     parser.add_argument(
         "--config",
-        default=os.getenv("APP_CONFIG_PATH", "config.json"),
+        default=os.getenv("APP_CONFIG_PATH", default_config),
         help="Path to the JSON config file.",
     )
     parser.add_argument(

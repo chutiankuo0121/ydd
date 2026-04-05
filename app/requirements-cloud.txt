@@ -1,7 +1,0 @@
--r requirements.txt
-
-# Cloud bootstrap notes:
-# 1. Install Python packages from this file first.
-# 2. Install the Chromium runtime once with:
-#    python -m patchright install chromium
-# 3. Xray is verified or auto-downloaded by main.py / download_xray.py.

@@ -2,12 +2,18 @@
 测试 Microsoft Graph API 调用
 从 Supabase 读取账号并尝试调用 API
 """
-import requests
-from supabase_db import supabase
+import os
+from curl_cffi import requests as curl_requests
+from supabase_db import get_supabase_client
+
+# SSL验证配置
+TEST_VERIFY_SSL = os.getenv("TEST_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
+
 
 def get_first_account(table_name='outlook'):
     """从 Supabase 获取第一个账号"""
     try:
+        supabase = get_supabase_client()
         result = supabase.table(table_name).select('*').limit(1).execute()
         if result.data and len(result.data) > 0:
             return result.data[0]
@@ -20,16 +26,26 @@ def get_first_account(table_name='outlook'):
 def try_refresh(refresh_token, client_id, tenant='common'):
     """尝试刷新 token 获取 access_token"""
     url = f'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token'
+    
+    # 和 mail_service.py 一致：默认不传 scope，除非环境变量设置
     data = {
         'client_id': client_id,
         'refresh_token': refresh_token,
         'grant_type': 'refresh_token',
-        # 不指定 scope，使用 refresh_token 关联的原始 scope
-        # 或者使用授权时的完整 scope
-        'scope': 'offline_access https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read'
     }
     
-    response = requests.post(url, data=data)
+    extra_scope = os.getenv("OUTLOOK_TOKEN_SCOPE", "").strip()
+    if extra_scope:
+        data['scope'] = extra_scope
+    
+    response = curl_requests.post(
+        url,
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        verify=TEST_VERIFY_SSL,
+        timeout=30,
+        impersonate="safari",
+    )
     return response.status_code, response.json()
 
 def test_graph_api(access_token):
@@ -38,7 +54,13 @@ def test_graph_api(access_token):
         'Authorization': f'Bearer {access_token}',
         'Accept': 'application/json'
     }
-    response = requests.get('https://graph.microsoft.com/v1.0/me', headers=headers)
+    response = curl_requests.get(
+        'https://graph.microsoft.com/v1.0/me',
+        headers=headers,
+        verify=TEST_VERIFY_SSL,
+        timeout=30,
+        impersonate="safari"
+    )
     return response.status_code, response.json()
 
 
@@ -48,9 +70,18 @@ def test_email_api(access_token):
         'Authorization': f'Bearer {access_token}',
         'Accept': 'application/json'
     }
-    response = requests.get(
-        'https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=1',
-        headers=headers
+    params = {
+        '$select': 'id,subject,body,from,receivedDateTime',
+        '$orderby': 'receivedDateTime desc',
+        '$top': '1',
+    }
+    response = curl_requests.get(
+        'https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages',
+        params=params,
+        headers=headers,
+        verify=TEST_VERIFY_SSL,
+        timeout=30,
+        impersonate="safari"
     )
     return response.status_code, response.json()
 

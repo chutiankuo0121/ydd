@@ -8,17 +8,18 @@ from runtime_log import configure_stdout, log
 
 
 def check_playwright_browsers() -> bool:
-    """检测 Playwright 浏览器是否已安装"""
+    """检测 Playwright 浏览器是否已安装且可用"""
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            for browser_type in [p.chromium, p.firefox, p.webkit]:
-                try:
-                    browser_type.executable_path
-                    return True
-                except Exception:
-                    continue
-        return False
+            # 尝试启动 chromium 来验证是否真正可用
+            try:
+                browser = p.chromium.launch()
+                browser.close()
+                return True
+            except Exception as e:
+                # 浏览器未安装或损坏
+                return False
     except Exception:
         return False
 

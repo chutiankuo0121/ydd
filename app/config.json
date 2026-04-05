@@ -7,7 +7,10 @@
     "max_tasks": 0,
     "email_domain": "hotmail.com",
     "airport": {
-        "subscription_url": "https://VBO1gePtey83TY0D.yuji.homes?clash=1",
+        "subscription_url": [
+            "https://update.glados-config.com/clash/566594/05a2be2/194283/glados.yaml",
+            "https://69uiv.no-mad-world.club/link/clo2EpG10uUpbFeG?clash=3&extend=1"
+        ],
         "xray_path": "xray.exe",
         "base_port": 10800,
         "port_search_limit": 200,

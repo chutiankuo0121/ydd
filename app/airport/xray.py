@@ -170,20 +170,36 @@ class XrayRunner:
         )
 
     def probe_session(self, session: AirportSession) -> AirportSession:
+        """测试代理延迟，只测速不获取 IP 信息"""
         start = time.time()
-        resp = requests.get(
-            self.connectivity_test_url,
-            proxies=build_requests_proxies(session.requests_proxy_url),
-            timeout=self.connectivity_timeout,
-        )
-        resp.raise_for_status()
+        # 使用简单的 HTTP 服务测试延迟，避免 429 错误
+        test_urls = [
+            "http://www.google.com/generate_204",
+            "http://www.gstatic.com/generate_204",
+        ]
+        last_error = None
+        for url in test_urls:
+            try:
+                resp = requests.get(
+                    url,
+                    proxies=build_requests_proxies(session.requests_proxy_url),
+                    timeout=self.connectivity_timeout,
+                    allow_redirects=False,
+                )
+                # 204 或其他状态码都表示连接成功
+                break
+            except Exception as e:
+                last_error = e
+                continue
+        else:
+            # 所有 URL 都失败
+            raise last_error or RuntimeError("延迟测试失败")
 
         latency_ms = int((time.time() - start) * 1000)
-        info = resp.json()
 
-        session.exit_ip = info.get("ip", "-")
-        session.country = info.get("country", "-")
-        session.region = info.get("region", "-")
+        session.exit_ip = "-"  # 不再获取 IP
+        session.country = "-"
+        session.region = "-"
         session.latency_ms = latency_ms
         return session
 
@@ -199,8 +215,28 @@ class XrayRunner:
             except Exception:
                 try:
                     process.kill()
+                    process.wait(timeout=2)
                 except Exception:
                     pass
+
+        # 强制杀掉占用端口的进程（Windows）
+        if os.name == "nt" and session.local_port:
+            try:
+                import subprocess as sp
+                # 查找占用端口的进程
+                result = sp.run(
+                    f'netstat -ano | findstr ":{session.local_port}"',
+                    shell=True, capture_output=True, text=True
+                )
+                for line in result.stdout.strip().split('\n'):
+                    if f':{session.local_port}' in line and 'LISTENING' in line:
+                        parts = line.split()
+                        if parts:
+                            pid = parts[-1]
+                            sp.run(f'taskkill /F /PID {pid}', shell=True, capture_output=True)
+                            print(f"[Xray] 强制终止占用端口 {session.local_port} 的进程 PID={pid}")
+            except Exception:
+                pass
 
         try:
             session.config_path.unlink()

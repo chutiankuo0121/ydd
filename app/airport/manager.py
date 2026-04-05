@@ -9,20 +9,8 @@ from runtime_log import log
 
 from .models import AirportNode, AirportSession
 from .ports import PortAllocator
-from .subscription import load_airport_nodes
+from .subscription import load_airport_nodes_from_multiple
 from .xray import XrayRunner, format_exception
-
-
-REGION_WEIGHTS = {
-    "singapore": 50,
-    "japan": 30,
-    "taiwan_hk": 20,
-}
-REGION_KEYWORDS = {
-    "singapore": ("新加坡", "singapore"),
-    "japan": ("日本", "japan"),
-    "taiwan_hk": ("台湾", "台灣", "香港", "hong kong", "hongkong"),
-}
 
 
 class AirportManager:
@@ -40,15 +28,16 @@ class AirportManager:
         self._nodes: list[AirportNode] = []
         self._cooldowns: dict[str, float] = {}
         self._active_node_names: set[str] = set()
+        self._node_latency: dict[str, int] = {}  # 记录节点延迟，延迟越低权重越高
 
     def load_nodes(self) -> list[AirportNode]:
-        raw_nodes = load_airport_nodes(self.config.subscription_url)
-        nodes = [node for node in raw_nodes if self._classify_region(node.name) is not None]
+        raw_nodes = load_airport_nodes_from_multiple(self.config.subscription_urls)
         with self._lock:
-            self._nodes = nodes
+            self._nodes = raw_nodes
             self._cooldowns.clear()
             self._active_node_names.clear()
-        return nodes
+            self._node_latency.clear()
+        return raw_nodes
 
     def ensure_nodes_loaded(self) -> list[AirportNode]:
         with self._lock:
@@ -105,48 +94,44 @@ class AirportManager:
 
         with self._lock:
             self._active_node_names.discard(session.node.name)
+            # 记录延迟，延迟越低权重越高
+            if session.latency_ms > 0:
+                self._node_latency[session.node.name] = session.latency_ms
             if penalize:
                 self._cooldowns[session.node.name] = (
                     time.monotonic() + self.config.node_failure_cooldown_seconds
                 )
 
     def _reserve_next_node(self) -> AirportNode | None:
+        """按延迟权重选择节点，延迟越低权重越高"""
         with self._lock:
             if not self._nodes:
                 return None
 
             now = time.monotonic()
-            grouped_candidates: dict[str, list[AirportNode]] = {
-                "singapore": [],
-                "japan": [],
-                "taiwan_hk": [],
-            }
+            candidates: list[AirportNode] = []
+
             for node in self._nodes:
                 cooldown_until = self._cooldowns.get(node.name, 0)
                 if cooldown_until > now:
                     continue
                 if node.name in self._active_node_names:
                     continue
+                candidates.append(node)
 
-                region = self._classify_region(node.name)
-                if region is None:
-                    continue
-                grouped_candidates[region].append(node)
-
-            available_groups = [
-                (region, REGION_WEIGHTS[region], nodes)
-                for region, nodes in grouped_candidates.items()
-                if nodes
-            ]
-            if not available_groups:
+            if not candidates:
                 return None
 
-            selected_region = random.choices(
-                [region for region, _, _ in available_groups],
-                weights=[weight for _, weight, _ in available_groups],
-                k=1,
-            )[0]
-            selected_node = random.choice(grouped_candidates[selected_region])
+            # 计算延迟权重：延迟越低，权重越高
+            # 使用反比权重：weight = 1 / latency，延迟未知时默认 200ms
+            weights = []
+            for node in candidates:
+                latency = self._node_latency.get(node.name, 200)
+                # 最小延迟 10ms 避免除以 0，权重为延迟的倒数
+                weight = 1000.0 / max(latency, 10)
+                weights.append(weight)
+
+            selected_node = random.choices(candidates, weights=weights, k=1)[0]
             self._active_node_names.add(selected_node.name)
             return selected_node
 
@@ -158,12 +143,3 @@ class AirportManager:
             self._cooldowns[node.name] = (
                 time.monotonic() + self.config.node_failure_cooldown_seconds
             )
-
-    @staticmethod
-    def _classify_region(node_name: str) -> str | None:
-        normalized = node_name.lower()
-        for region, keywords in REGION_KEYWORDS.items():
-            for keyword in keywords:
-                if keyword in normalized:
-                    return region
-        return None

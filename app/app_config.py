@@ -65,7 +65,7 @@ class OAuthConfig:
 
 @dataclass(frozen=True)
 class AirportConfig:
-    subscription_url: str
+    subscription_urls: list[str]  # 支持多个订阅 URL
     xray_path: Path
     base_port: int
     port_search_limit: int
@@ -133,6 +133,13 @@ def load_app_config(config_path: str | Path = "config.json") -> AppConfig:
         default_value=DEFAULT_XRAY_PATH,
     )
 
+    # 处理 subscription_url 可以是字符串或数组
+    sub_url_raw = airport_raw.get("subscription_url", DEFAULT_AIRPORT_SUBSCRIPTION_URL)
+    if isinstance(sub_url_raw, list):
+        subscription_urls = sub_url_raw
+    else:
+        subscription_urls = [sub_url_raw]
+
     return AppConfig(
         project_root=project_root,
         choose_browser=raw.get("choose_browser", "patchright"),
@@ -151,9 +158,7 @@ def load_app_config(config_path: str | Path = "config.json") -> AppConfig:
             redirect_port_end=redirect_port_end,
         ),
         airport=AirportConfig(
-            subscription_url=airport_raw.get(
-                "subscription_url", DEFAULT_AIRPORT_SUBSCRIPTION_URL
-            ),
+            subscription_urls=subscription_urls,
             xray_path=xray_path,
             base_port=int(airport_raw.get("base_port", 10800)),
             port_search_limit=int(airport_raw.get("port_search_limit", 200)),

@@ -17,9 +17,9 @@ def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-def save_email(email: str, password: str, refresh_token: str = None, client_id: str = None):
+def save_email(email: str, password: str, refresh_token: str = None, client_id: str = None, max_retries: int = 3):
     """
-    根据邮箱域名保存到对应表
+    根据邮箱域名保存到对应表，带重试逻辑
     outlook.com -> outlook 表
     hotmail.com -> hotmail 表
     """
@@ -48,11 +48,18 @@ def save_email(email: str, password: str, refresh_token: str = None, client_id: 
     if client_id:
         data['client_id'] = client_id
     
-    try:
-        # 插入数据，遇到重复邮箱则更新
-        get_supabase_client().table(table_name).upsert(data).execute()
-        print(f"[Supabase] 已保存到 {table_name} 表: {email}")
-        return True
-    except Exception as e:
-        print(f"[Supabase Error] 保存失败: {e}")
-        return False
+    # 重试逻辑
+    for attempt in range(1, max_retries + 1):
+        try:
+            # 插入数据，遇到重复邮箱则更新
+            get_supabase_client().table(table_name).upsert(data).execute()
+            print(f"[Supabase] 已保存到 {table_name} 表: {email}")
+            return True
+        except Exception as e:
+            print(f"[Supabase Error] 第 {attempt} 次尝试失败: {e}")
+            if attempt < max_retries:
+                import time
+                time.sleep(0.5)  # 短暂延迟后重试
+            else:
+                print(f"[Supabase Error] 保存失败，已重试 {max_retries} 次")
+    return False

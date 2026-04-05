@@ -25,48 +25,24 @@ def check_playwright_browsers() -> bool:
 
 
 def ensure_playwright_browsers(log_func=print) -> bool:
-    """安装 Playwright 浏览器及其依赖"""
+    """安装 Playwright 浏览器"""
     try:
         import subprocess
         import sys
         
-        # 先显示当前 playwright 版本
-        try:
-            import playwright
-            log_func(f"[playwright] package version: {playwright.__version__}")
-        except Exception:
-            pass
-        
-        log_func("[playwright] installing chromium with deps...")
-        # 使用 --with-deps 确保系统依赖也安装
+        log_func("[playwright] installing chromium...")
         result = subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "--with-deps", "chromium"],
+            [sys.executable, "-m", "playwright", "install", "chromium"],
             capture_output=True,
             text=True,
-            timeout=600,  # 增加超时时间，因为下载可能很慢
+            timeout=300,
         )
         if result.returncode == 0:
-            log_func("[playwright] chromium installed successfully")
+            log_func("[playwright] chromium installed")
             return True
         else:
-            log_func(f"[playwright] install failed:\n{result.stderr[:500]}")
-            # 尝试不带 --with-deps 再试一次
-            log_func("[playwright] retrying without system deps...")
-            result2 = subprocess.run(
-                [sys.executable, "-m", "playwright", "install", "chromium"],
-                capture_output=True,
-                text=True,
-                timeout=600,
-            )
-            if result2.returncode == 0:
-                log_func("[playwright] chromium installed (without deps)")
-                return True
-            else:
-                log_func(f"[playwright] retry failed:\n{result2.stderr[:500]}")
-                return False
-    except subprocess.TimeoutExpired:
-        log_func("[playwright] install timeout (600s), please check network")
-        return False
+            log_func(f"[playwright] install failed: {result.stderr[:200]}")
+            return False
     except Exception as e:
         log_func(f"[playwright] install error: {e}")
         return False
